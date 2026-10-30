@@ -1,0 +1,545 @@
+; Foldz 1.0 - My Files popup + go/return for reMarkable Paper Pro 3.28 (no native code).
+; Author: Nick Greenfield
+; Licence: GPL-3.0-or-later
+; Document open calls follow alefaraci's linkFromSelection / navHistory (GPL-3.0-only):
+;   research/alefaraci/3.28/linkFromSelection.qmd
+;   research/alefaraci/3.28/navHistory.qmd  (explorer.open)
+; Overlay INSERT into DocumentView follows Stickerz 1.0 / rm-stickers v3.1.
+; Cross-document return state is stored as primitives on the long-lived root
+; ~&254540341572282132&~ (navigator), NOT on the DocumentView instance.
+; Every hashed token below is copied from mods published for 3.28 (see README "Evidence").
+; Coexists with Stickerz 1.0: this mod's icon sits LEFT of Stickerz (rightMargin 220 vs 120).
+; FolderListModel IMPORT + folder/count/get hashes from ingatellent imageStickers 3.28.
+; Metadata tree is built by reading xochitl *.metadata via FolderListModel + XMLHttpRequest
+; (XHR open/send + JSON.parse hashes from linkFromSelection 3.28).
+
+; --- Persistent open/return helpers on navigator root ---
+AFFECT [[8850026134298937527]]
+	TRAVERSE [[8397993708429497603]]
+	LOCATE BEFORE ALL
+	INSERT {
+		/* Foldz primitives on the long-lived root (same pattern as Stickerz stk*). */
+		property string fldBackDoc: ""
+		property int fldBackPage: 0
+		property int fldJump: -1
+		property string fldJumpDoc: ""
+		function fldOpenDoc(docId, pageIdx) {
+			try {
+				var d = ~&233694067165438&~.~&8399431778896295215&~(docId);
+				if (!d) return "Notebook not found in My Files";
+				if (d.~&7712810854541167&~) return "Notebook not downloaded yet";
+				~&254540341572282132&~.fldJumpDoc = docId;
+				~&254540341572282132&~.fldJump = pageIdx;
+				~&254540341572282132&~.~&9497240032101537789&~(d, pageIdx);
+				return "";
+			} catch (e) { return "Could not open: " + e; }
+		}
+		function fldOpenByExplorer(docId) {
+			try {
+				var d = ~&233694067165438&~.~&8399431778896295215&~(docId);
+				if (!d) return "Notebook not found in My Files";
+				if (d.~&7712810854541167&~) return "Notebook not downloaded yet";
+				~&254540341572282132&~.~&7712989590835962&~.~&6504147419&~(docId);
+				return "";
+			} catch (e) { return "Could not open: " + e; }
+		}
+		function fldClearBack() {
+			~&254540341572282132&~.fldBackDoc = "";
+			~&254540341572282132&~.fldBackPage = 0;
+		}
+	}
+	END TRAVERSE
+END AFFECT
+
+; --- DocumentView overlay: folder button, back button, My Files popup ---
+AFFECT [[11806562588218124596]]
+	IMPORT Qt.labs.folderlistmodel [[180923.180930]]
+	TRAVERSE ?#[[6504254477]]
+	LOCATE AFTER ALL
+	INSERT {
+		Item {
+			id: fldLayer
+			anchors.fill: parent
+			z: 99998
+			/* Sit under Stickerz (z 99999) for message stacking; icons do not overlap. */
+
+			property string msg: ""
+			property bool popupOpen: false
+			property bool loading: false
+			property int loadIdx: 0
+			property int loadTotal: 0
+			property var entries: []
+			property var expanded: ({})
+			property var treeRows: []
+			property string docIdNow: {
+				var d = ~&6504254477&~.~&7712934851008712&~;
+				return (d && d.~&5972374&~) ? String(d.~&5972374&~) : "";
+			}
+			property int pageNow: {
+				try { return ~&6504254477&~.~&6504167078&~; } catch (e) { return 0; }
+			}
+			property bool hasBack: {
+				var b = ~&254540341572282132&~.fldBackDoc;
+				return b && b !== "";
+			}
+
+			FolderListModel {
+				id: fldMetaFiles
+				~&7082663378949&~: "file:///home/root/.local/share/remarkable/xochitl"
+				nameFilters: ["*.metadata"]
+				showDirs: false
+				sortField: FolderListModel.~&6502945418&~
+			}
+
+			function openDoc(id, pageIdx) {
+				var err = ~&254540341572282132&~.fldOpenDoc(id, pageIdx);
+				if (err !== "") { msg = err; return false; }
+				return true;
+			}
+			function openByExplorer(id) {
+				var err = ~&254540341572282132&~.fldOpenByExplorer(id);
+				if (err !== "") { msg = err; return false; }
+				return true;
+			}
+
+			property int jumpTries: 0
+			function tryJump() {
+				var want = ~&254540341572282132&~.fldJump;
+				if (want < 0) return;
+				if (!~&6504254477&~.~&7712934851008712&~) return;
+				if (docIdNow !== ~&254540341572282132&~.fldJumpDoc) {
+					if (++jumpTries > 20) { ~&254540341572282132&~.fldJump = -1; jumpTries = 0; }
+					return;
+				}
+				~&254540341572282132&~.fldJump = -1; jumpTries = 0;
+				if (pageNow === want) return;
+				try {
+					~&6504254477&~.~&7713405014271992&~(want, ~&14175747548438644067&~.~&10593835380864769165&~.~&7442916920529273295&~);
+				} catch (e) { msg = "Page jump failed: " + e; }
+			}
+			Timer { interval: 250; repeat: true; running: ~&254540341572282132&~.fldJump >= 0; onTriggered: fldLayer.tryJump() }
+			Component.onCompleted: tryJump()
+
+			function goBack() {
+				var doc = ~&254540341572282132&~.fldBackDoc;
+				var page = ~&254540341572282132&~.fldBackPage;
+				if (!doc || doc === "") {
+					msg = "No return notebook - use the X to close";
+					return;
+				}
+				~&254540341572282132&~.fldClearBack();
+				openDoc(doc, page);
+			}
+
+			function openPopup() {
+				popupOpen = true;
+				startLoad();
+			}
+			function closePopup() {
+				popupOpen = false;
+				loading = false;
+				loadTimer.stop();
+			}
+
+			function startLoad() {
+				entries = [];
+				treeRows = [];
+				expanded = { "": true };
+				loadIdx = 0;
+				loadTotal = fldMetaFiles.~&214622615378&~;
+				loading = true;
+				if (loadTotal <= 0) {
+					msg = "My Files is empty or still loading";
+					loading = false;
+					rebuildTree();
+					return;
+				}
+				loadTimer.start();
+			}
+
+			function loadOne() {
+				if (loadIdx >= loadTotal) {
+					loading = false;
+					loadTimer.stop();
+					rebuildTree();
+					return;
+				}
+				var fname = fldMetaFiles.~&197086313&~(loadIdx, "fileName");
+				var furl = fldMetaFiles.~&197086313&~(loadIdx, "fileUrl");
+				loadIdx++;
+				if (!fname || !furl) return;
+				var id = String(fname).replace(".metadata", "");
+				if (!id || id.length < 8) return;
+				var req = new XMLHttpRequest();
+				req.~&6504147419&~("GET", furl);
+				var capturedId = id;
+				req.onreadystatechange = function() {
+					if (req.readyState !== XMLHttpRequest.DONE) return;
+					try {
+						var txt = req.responseText || "";
+						var obj = ~&6502785411&~.parse(txt);
+						if (!obj) return;
+						var typ = obj.type || "";
+						if (typ !== "DocumentType" && typ !== "CollectionType") return;
+						if (obj.deleted === true) return;
+						var parent = (obj.parent === undefined || obj.parent === null) ? "" : String(obj.parent);
+						if (parent === "trash") return;
+						var name = obj.visibleName ? String(obj.visibleName) : capturedId;
+						var list = fldLayer.entries.slice(0);
+						list.push({
+							id: capturedId,
+							name: name,
+							type: typ,
+							parent: parent,
+							isFolder: typ === "CollectionType"
+						});
+						fldLayer.entries = list;
+					} catch (e) { /* skip unreadable metadata */ }
+				};
+				req.~&6504279475&~();
+			}
+
+			Timer {
+				id: loadTimer
+				interval: 5
+				repeat: true
+				running: false
+				onTriggered: {
+					/* Load a few per tick so a large library does not freeze the UI. */
+					for (var n = 0; n < 8; n++) {
+						if (!fldLayer.loading) break;
+						fldLayer.loadOne();
+						if (!fldLayer.loading) break;
+					}
+				}
+			}
+
+			function childList(parentId) {
+				var out = [];
+				var all = entries;
+				for (var i = 0; i < all.length; i++) {
+					if (all[i].parent === parentId) out.push(all[i]);
+				}
+				out.sort(function(a, b) {
+					if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
+					var an = a.name.toLowerCase();
+					var bn = b.name.toLowerCase();
+					if (an < bn) return -1;
+					if (an > bn) return 1;
+					return 0;
+				});
+				return out;
+			}
+
+			function rebuildTree() {
+				var rows = [];
+				var exp = expanded;
+				function walk(parentId, depth) {
+					var kids = fldLayer.childList(parentId);
+					for (var i = 0; i < kids.length; i++) {
+						var e = kids[i];
+						rows.push({
+							id: e.id,
+							name: e.name,
+							type: e.type,
+							depth: depth,
+							isFolder: e.isFolder,
+							open: !!(exp[e.id])
+						});
+						if (e.isFolder && exp[e.id]) walk(e.id, depth + 1);
+					}
+				}
+				walk("", 0);
+				treeRows = rows;
+			}
+
+			function toggleFolder(id) {
+				var exp = {};
+				for (var k in expanded) exp[k] = expanded[k];
+				exp[id] = !exp[id];
+				expanded = exp;
+				rebuildTree();
+			}
+
+			function pickEntry(row) {
+				if (!row) return;
+				if (row.isFolder) {
+					toggleFolder(row.id);
+					return;
+				}
+				/* Remember where we came from, then open the chosen notebook. */
+				if (!hasBack) {
+					~&254540341572282132&~.fldBackDoc = docIdNow;
+					~&254540341572282132&~.fldBackPage = pageNow;
+				}
+				closePopup();
+				openByExplorer(row.id);
+			}
+
+			Timer { id: fldMsgTimer; interval: 3500; running: fldLayer.msg !== ""; onTriggered: fldLayer.msg = "" }
+
+			/* Folder / Back button: top-right, LEFT of Stickerz (Stickerz uses rightMargin 120). */
+			Rectangle {
+				id: fldGo
+				visible: !fldLayer.hasBack
+				width: 88; height: 88; radius: 12
+				anchors.top: parent.top
+				anchors.topMargin: 16
+				anchors.right: parent.right
+				anchors.rightMargin: 220
+				color: "white"; border.color: "black"; border.width: 3
+				Canvas {
+					id: fldGoIcon
+					anchors.fill: parent
+					anchors.margins: 14
+					onPaint: {
+						var ctx = getContext("2d");
+						var w = width, h = height;
+						ctx.clearRect(0, 0, w, h);
+						ctx.strokeStyle = "#000000";
+						ctx.fillStyle = "#000000";
+						ctx.lineWidth = Math.max(2.5, w / 18);
+						ctx.lineJoin = "round";
+						ctx.lineCap = "round";
+						var s = w / 160;
+						function X(x) { return x * s; }
+						function Y(y) { return y * s; }
+						/* tab */
+						ctx.beginPath();
+						ctx.moveTo(X(28), Y(48));
+						ctx.lineTo(X(28), Y(38));
+						ctx.lineTo(X(70), Y(38));
+						ctx.lineTo(X(82), Y(48));
+						ctx.closePath();
+						ctx.fillStyle = "#ffffff";
+						ctx.fill();
+						ctx.stroke();
+						/* body */
+						ctx.beginPath();
+						ctx.moveTo(X(28), Y(48));
+						ctx.lineTo(X(132), Y(48));
+						ctx.lineTo(X(132), Y(122));
+						ctx.lineTo(X(28), Y(122));
+						ctx.closePath();
+						ctx.fillStyle = "#ffffff";
+						ctx.fill();
+						ctx.stroke();
+						/* open flap hint */
+						ctx.beginPath();
+						ctx.moveTo(X(28), Y(60));
+						ctx.lineTo(X(132), Y(60));
+						ctx.stroke();
+					}
+					Component.onCompleted: requestPaint()
+					onWidthChanged: requestPaint()
+					onHeightChanged: requestPaint()
+				}
+				MouseArea { anchors.fill: parent; onClicked: fldLayer.openPopup() }
+			}
+
+			/* Back button: same slot as folder icon when a return target is set. Icon 4 style. */
+			Rectangle {
+				id: fldBackBtn
+				visible: fldLayer.hasBack
+				width: 88; height: 88; radius: 12
+				anchors.top: parent.top
+				anchors.topMargin: 16
+				anchors.right: parent.right
+				anchors.rightMargin: 220
+				color: "white"; border.color: "black"; border.width: 3
+				Canvas {
+					id: fldBackIcon
+					anchors.fill: parent
+					anchors.margins: 14
+					onPaint: {
+						var ctx = getContext("2d");
+						var w = width, h = height;
+						ctx.clearRect(0, 0, w, h);
+						ctx.strokeStyle = "#000000";
+						ctx.fillStyle = "#ffffff";
+						ctx.lineWidth = Math.max(2.5, w / 18);
+						ctx.lineJoin = "round";
+						ctx.lineCap = "round";
+						var s = w / 160;
+						function X(x) { return x * s; }
+						function Y(y) { return y * s; }
+						ctx.beginPath();
+						ctx.rect(X(70), Y(25), X(130) - X(70), Y(135) - Y(25));
+						ctx.fill();
+						ctx.stroke();
+						ctx.lineWidth = Math.max(1.5, w / 36);
+						for (var i = 0; i < 5; i++) {
+							var y = 45 + i * 18;
+							ctx.beginPath();
+							ctx.moveTo(X(82), Y(y));
+							ctx.lineTo(X(118), Y(y));
+							ctx.stroke();
+						}
+						ctx.lineWidth = Math.max(3, w / 14);
+						ctx.beginPath();
+						ctx.moveTo(X(20), Y(80));
+						ctx.lineTo(X(62), Y(80));
+						ctx.stroke();
+						ctx.beginPath();
+						ctx.moveTo(X(20), Y(80));
+						ctx.lineTo(X(40), Y(62));
+						ctx.stroke();
+						ctx.beginPath();
+						ctx.moveTo(X(20), Y(80));
+						ctx.lineTo(X(40), Y(98));
+						ctx.stroke();
+					}
+					Component.onCompleted: requestPaint()
+					onWidthChanged: requestPaint()
+					onHeightChanged: requestPaint()
+				}
+				MouseArea { anchors.fill: parent; onClicked: fldLayer.goBack() }
+			}
+
+			/* Toast */
+			Rectangle {
+				visible: fldLayer.msg !== ""
+				anchors.horizontalCenter: parent.horizontalCenter
+				anchors.top: parent.top
+				anchors.topMargin: 120
+				width: fldMsgText.implicitWidth + 48; height: 72; radius: 12
+				color: "white"; border.color: "black"; border.width: 3
+				z: 2
+				Text { id: fldMsgText; anchors.centerIn: parent; text: fldLayer.msg; font.pixelSize: 28; color: "black" }
+			}
+
+			/* My Files popup */
+			Rectangle {
+				id: fldPopupScrim
+				visible: fldLayer.popupOpen
+				anchors.fill: parent
+				color: "#000000"
+				opacity: 0.25
+				z: 3
+				MouseArea { anchors.fill: parent; onClicked: fldLayer.closePopup() }
+			}
+			Rectangle {
+				id: fldPopup
+				visible: fldLayer.popupOpen
+				anchors.centerIn: parent
+				width: Math.min(parent.width - 80, 980)
+				height: Math.min(parent.height - 120, 1400)
+				radius: 16
+				color: "white"
+				border.color: "black"
+				border.width: 3
+				z: 4
+
+				Text {
+					id: fldTitle
+					anchors.top: parent.top
+					anchors.left: parent.left
+					anchors.topMargin: 28
+					anchors.leftMargin: 36
+					text: "My Files"
+					font.pixelSize: 40
+					font.bold: true
+					color: "black"
+				}
+				Text {
+					anchors.left: fldTitle.right
+					anchors.leftMargin: 24
+					anchors.verticalCenter: fldTitle.verticalCenter
+					visible: fldLayer.loading
+					text: "Loading " + Math.min(fldLayer.loadIdx, fldLayer.loadTotal) + "/" + fldLayer.loadTotal
+					font.pixelSize: 26
+					color: "black"
+				}
+				Rectangle {
+					id: fldClose
+					width: 72; height: 72; radius: 12
+					anchors.top: parent.top
+					anchors.right: parent.right
+					anchors.topMargin: 16
+					anchors.rightMargin: 16
+					color: "white"; border.color: "black"; border.width: 3
+					Text { anchors.centerIn: parent; text: "X"; font.pixelSize: 36; color: "black" }
+					MouseArea { anchors.fill: parent; onClicked: fldLayer.closePopup() }
+				}
+
+				Flickable {
+					id: fldFlick
+					anchors.top: fldTitle.bottom
+					anchors.topMargin: 24
+					anchors.left: parent.left
+					anchors.right: parent.right
+					anchors.bottom: parent.bottom
+					anchors.leftMargin: 12
+					anchors.rightMargin: 12
+					anchors.bottomMargin: 20
+					clip: true
+					contentWidth: width
+					contentHeight: fldCol.height
+					flickableDirection: Flickable.VerticalFlick
+					boundsBehavior: Flickable.StopAtBounds
+
+					Column {
+						id: fldCol
+						width: fldFlick.width
+						spacing: 4
+
+						Repeater {
+							model: fldLayer.treeRows
+							delegate: Rectangle {
+								width: fldCol.width
+								height: 72
+								radius: 8
+								color: "white"
+								border.color: "#cccccc"
+								border.width: 1
+
+								property var row: modelData
+
+								Item {
+									anchors.fill: parent
+									anchors.leftMargin: 16 + (row && row.depth ? row.depth * 36 : 0)
+									anchors.rightMargin: 16
+
+									Text {
+										id: fldGlyph
+										anchors.left: parent.left
+										anchors.verticalCenter: parent.verticalCenter
+										width: 48
+										text: row && row.isFolder ? (row.open ? "v" : ">") : "-"
+										font.pixelSize: 32
+										color: "black"
+									}
+									Text {
+										anchors.left: fldGlyph.right
+										anchors.leftMargin: 8
+										anchors.right: parent.right
+										anchors.verticalCenter: parent.verticalCenter
+										text: row ? row.name : ""
+										font.pixelSize: 30
+										color: "black"
+										elide: Text.ElideRight
+									}
+								}
+								MouseArea {
+									anchors.fill: parent
+									onClicked: fldLayer.pickEntry(row)
+								}
+							}
+						}
+
+						Text {
+							visible: !fldLayer.loading && fldLayer.treeRows.length === 0
+							width: fldCol.width
+							horizontalAlignment: Text.AlignHCenter
+							text: "No notebooks found"
+							font.pixelSize: 28
+							color: "black"
+							padding: 24
+						}
+					}
+				}
+			}
+		}
+	}
+	END TRAVERSE
+END AFFECT

@@ -1,6 +1,8 @@
-# Foldz 1.0
+# Folderz 1.0
 
 QML-only **My Files** popup and go/return buttons for reMarkable Paper Pro, firmware **3.28.0.172**, with XOVI and qt-resource-rebuilder.
+
+**Folderz replaces Foldz.** The project was renamed from Foldz; this remains version 1.0.
 
 **Author:** Nick Greenfield  
 **Version:** 1.0  
@@ -8,22 +10,22 @@ QML-only **My Files** popup and go/return buttons for reMarkable Paper Pro, firm
 
 ## What it does
 
-1. In any open document, a **folder** button appears at the **top right**, immediately **left of the Stickerz** sticker icon (Stickerz stays at `rightMargin: 120`; Foldz uses `220`).
+1. In any open document, a **folder** button appears at the **top right**, immediately **left of the Stickerz** sticker icon (Stickerz stays at `rightMargin: 120`; Folderz uses `220`).
 2. Tap it: a popup lists the whole **My Files** tree (folders expandable, notebooks listed). The tree is read from the tablet's own xochitl `*.metadata` files.
-3. Tap a notebook: Foldz remembers your current document and page on the long-lived navigator root, then opens the chosen notebook (via `navigator.explorer.open`, same path as a manual file-browser tap — restores that notebook's last page).
+3. Tap a notebook: Folderz remembers your current document and page on the long-lived navigator root, then opens the chosen notebook (via `navigator.explorer.open`, same path as a manual file-browser tap — restores that notebook's last page).
 4. In the opened notebook, a **back-to-document** button (icon 4: left arrow + lined page) appears in the **same folder-button slot**. Tap it to return to the original notebook and page, then paste.
 5. The clipboard survives the switch (same as Stickerz).
 
 ## Coexistence with Stickerz
 
-**Separate `.qmd` file** (`foldz.qmd` beside `stickerz.qmd`). Preferable to merging into Stickerz because:
+**Separate `.qmd` file** (`folderz.qmd` beside `stickerz.qmd`). Preferable to merging into Stickerz because:
 
 - Stickerz 1.0 is already confirmed working; a merge risks regressing it.
 - Icon slots do not overlap (220 vs 120).
 - State prefixes differ (`fld*` vs `stk*`) on the same navigator root.
 - Either mod can be installed or removed alone.
 
-If both return targets are set (e.g. you used Foldz to open the Stickers notebook), both back buttons can show in their own slots — Foldz at 220, Stickerz at 120.
+If both return targets are set (e.g. you used Folderz to open the Stickers notebook), both back buttons can show in their own slots — Folderz at 220, Stickerz at 120.
 
 ## Icons
 
@@ -36,20 +38,20 @@ Drawn in QML with plain `Canvas` (no new hashes), black on white for e-ink:
 
 ## Install on Windows
 
-1. Run `Foldz-1.0-Setup.exe`. Windows SmartScreen may warn — choose **More info**, then **Run anyway**.
+1. Run `Folderz-1.0-Setup.exe`. Windows SmartScreen may warn — choose **More info**, then **Run anyway**.
 2. Enter the tablet IP (default `10.11.99.1`), username `root`, and the SSH password (never stored).
 3. Choose **1** to install or update, or **2** to uninstall.
 4. After install, in **reManager**: **rebuild the hashtab**, then **restart XOVI / xochitl**.  
    The installer does **not** restart the UI for you.
 
-Upgrading from the earlier working name **Folder Project** (`folders.qmd`) is supported: `install.sh` moves `folders.qmd` into a backup first so only `foldz.qmd` loads (no duplicate icons).
+Upgrading from **Foldz** (`foldz.qmd`) or the earlier working name **Folder Project** (`folders.qmd`) is supported: `install.sh` moves those files into a backup first so only `folderz.qmd` loads (no duplicate icons).
 
 ### Manual (scp + ssh)
 
 ```
-scp -r foldz-1.0 root@10.11.99.1:/home/root/foldz
+scp -r folderz-1.0 root@10.11.99.1:/home/root/folderz
 ssh root@10.11.99.1
-sh /home/root/foldz/install.sh
+sh /home/root/folderz/install.sh
 ```
 
 Then rebuild the hashtab and restart in reManager.
@@ -57,17 +59,17 @@ Then rebuild the hashtab and restart in reManager.
 ### What install.sh does
 
 * Prints the firmware version.
-* Backs up `exthome/qt-resource-rebuilder` to `/home/root/foldz-backup-<time>/` before changing anything.
-* Moves a previous `folders.qmd` (Folder Project) into that backup so both mods do not load.
-* Never overwrites a file it did not create (or that does not look like Foldz / Folder Project).
+* Backs up `exthome/qt-resource-rebuilder` to `/home/root/folderz-backup-<time>/` before changing anything.
+* Moves a previous `foldz.qmd` (Foldz) or `folders.qmd` (Folder Project) into that backup so both mods do not load.
+* Never overwrites a file it did not create (or that does not look like Folderz / Foldz / Folder Project).
 * Leaves `stickerz.qmd` and every other mod alone.
-* Installs `/home/root/xovi/exthome/qt-resource-rebuilder/foldz.qmd`.
-* Records created paths in `/home/root/xovi/foldz.manifest`.
+* Installs `/home/root/xovi/exthome/qt-resource-rebuilder/folderz.qmd`.
+* Records created paths in `/home/root/xovi/folderz.manifest`.
 
 ## Uninstall
 
 ```
-sh /home/root/foldz/uninstall.sh
+sh /home/root/folderz/uninstall.sh
 ```
 
 Afterwards, rebuild the hashtab and restart in reManager.

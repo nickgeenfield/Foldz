@@ -1,4 +1,4 @@
-module foldz-installer
+module folderz-installer
 
 go 1.27.3
 

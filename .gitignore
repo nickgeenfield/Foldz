@@ -1,10 +1,9 @@
 # Build outputs — publish these on Releases, not in git
 *.exe
 *.zip
-*.syso
 *.tar.gz
-Foldz-*-Setup*
-Foldz-*.zip
+Folderz-*-Setup*
+Folderz-*.zip
 installer/payload/*.qmd.bak
 .DS_Store
 Thumbs.db

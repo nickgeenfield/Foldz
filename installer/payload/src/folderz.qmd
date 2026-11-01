@@ -1,4 +1,4 @@
-; Foldz 1.0 - My Files popup + go/return for reMarkable Paper Pro 3.28 (no native code).
+; Folderz 1.0 - My Files popup + go/return for reMarkable Paper Pro 3.28 (no native code).
 ; Author: Nick Greenfield
 ; Licence: GPL-3.0-or-later
 ; Document open calls follow alefaraci's linkFromSelection / navHistory (GPL-3.0-only):
@@ -18,7 +18,7 @@ AFFECT [[8850026134298937527]]
 	TRAVERSE [[8397993708429497603]]
 	LOCATE BEFORE ALL
 	INSERT {
-		/* Foldz primitives on the long-lived root (same pattern as Stickerz stk*). */
+		/* Folderz primitives on the long-lived root (same pattern as Stickerz stk*). */
 		property string fldBackDoc: ""
 		property int fldBackPage: 0
 		property int fldJump: -1

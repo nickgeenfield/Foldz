@@ -1,7 +1,7 @@
-// Foldz 1.0 installer for reMarkable (XOVI + qt-resource-rebuilder).
-// Copies the foldz package to the tablet and runs install.sh / uninstall.sh.
+// Folderz 1.0 installer for reMarkable (XOVI + qt-resource-rebuilder).
+// Copies the folderz package to the tablet and runs install.sh / uninstall.sh.
 // Separate from Stickerz; both can be installed together.
-// Migrates over Folder Project (folders.qmd) so only Foldz loads.
+// Migrates over Foldz (foldz.qmd) and Folder Project (folders.qmd) so only Folderz loads.
 // Does NOT restart the UI; you rebuild the hashtab and restart XOVI/xochitl in reManager.
 package main
 
@@ -26,10 +26,10 @@ import (
 
 const (
 	version     = "1.0.0"
-	appName     = "Foldz"
+	appName     = "Folderz"
 	defaultIP   = "10.11.99.1"
 	defaultUsr  = "root"
-	remoteRoot  = "/home/root/foldz"
+	remoteRoot  = "/home/root/folderz"
 	xoviDir     = "/home/root/xovi"
 	qmdDir      = xoviDir + "/exthome/qt-resource-rebuilder"
 )
@@ -49,10 +49,10 @@ func main() {
 func run() int {
 	fmt.Printf("%s installer, version %s\n", appName, version)
 	fmt.Println(strings.Repeat("-", 40))
-	fmt.Println("This installs, updates or removes Foldz 1.0")
+	fmt.Println("This installs, updates or removes Folderz 1.0")
 	fmt.Println("on a reMarkable tablet that already has XOVI and qt-resource-rebuilder.")
 	fmt.Println()
-	fmt.Println("Foldz adds a My Files popup next to Stickerz. It is a separate .qmd and does not replace Stickerz.")
+	fmt.Println("Folderz adds a My Files popup next to Stickerz. It is a separate .qmd and does not replace Stickerz.")
 	fmt.Println("Read the README on the tablet (or in the package) before you install.")
 	fmt.Println()
 	fmt.Println("Before you start:")
@@ -88,8 +88,8 @@ func run() int {
 	for {
 		fmt.Println()
 		fmt.Println("What would you like to do?")
-		fmt.Println("  1  Install or update Foldz 1.0")
-		fmt.Println("  2  Uninstall Foldz")
+		fmt.Println("  1  Install or update Folderz 1.0")
+		fmt.Println("  2  Uninstall Folderz")
 		fmt.Println("  3  Quit")
 		switch strings.TrimSpace(prompt("Choose 1, 2 or 3: ")) {
 		case "1":
@@ -250,11 +250,11 @@ func checkXOVI(c *ssh.Client) error {
 		return nil
 	case "NOXOVI":
 		return errors.New("XOVI isn't installed on this tablet (" + xoviDir + " wasn't found).\n" +
-			"Foldz needs XOVI and qt-resource-rebuilder. Install those first, then run this again.\n" +
+			"Folderz needs XOVI and qt-resource-rebuilder. Install those first, then run this again.\n" +
 			"Nothing was changed.")
 	default:
 		return errors.New("XOVI is installed, but qt-resource-rebuilder isn't (" + qmdDir + " wasn't found).\n" +
-			"Foldz is a QMD mod for qt-resource-rebuilder. Install that extension first, then run this again.\n" +
+			"Folderz is a QMD mod for qt-resource-rebuilder. Install that extension first, then run this again.\n" +
 			"Nothing was changed.")
 	}
 }
@@ -268,7 +268,7 @@ func install(c *ssh.Client) error {
 		return fmt.Errorf("couldn't create folders: %v %s", err, out)
 	}
 
-	fmt.Println("[2/3] Copying the Foldz 1.0 package to the tablet...")
+	fmt.Println("[2/3] Copying the Folderz 1.0 package to the tablet...")
 	if err := uploadTree(c); err != nil {
 		runCmd(c, "rm -rf "+remoteRoot)
 		return err
@@ -286,7 +286,7 @@ func install(c *ssh.Client) error {
 		return fmt.Errorf("install.sh failed: %v", err)
 	}
 
-	fmt.Println("Success! Foldz 1.0 files are on the tablet.")
+	fmt.Println("Success! Folderz 1.0 files are on the tablet.")
 	fmt.Println()
 	fmt.Println("This installer does NOT restart the UI.")
 	fmt.Println("Next steps — in reManager:")
@@ -403,7 +403,7 @@ func catPutFile(c *ssh.Client, src, dst string, mode os.FileMode) error {
 
 func uninstall(c *ssh.Client) error {
 	fmt.Println()
-	if !yesNo("Remove Foldz from this tablet?", false) {
+	if !yesNo("Remove Folderz from this tablet?", false) {
 		fmt.Println("Nothing was changed.")
 		return nil
 	}
@@ -411,8 +411,8 @@ func uninstall(c *ssh.Client) error {
 	exists, _ := runCmd(c, "if [ -f "+script+" ]; then echo YES; else echo NO; fi")
 	if exists != "YES" {
 		return errors.New("uninstall.sh was not found at " + script + ".\n" +
-			"SSH in and remove /home/root/xovi/exthome/qt-resource-rebuilder/foldz.qmd\n" +
-			"(and folders.qmd if a Folder Project install is still present),\n" +
+			"SSH in and remove /home/root/xovi/exthome/qt-resource-rebuilder/folderz.qmd\n" +
+			"(and foldz.qmd / folders.qmd if a Foldz or Folder Project install is still present),\n" +
 			"then rebuild the hashtab and restart in reManager.")
 	}
 	cmd := "sh " + script
@@ -429,7 +429,7 @@ func uninstall(c *ssh.Client) error {
 		return fmt.Errorf("%v", err)
 	}
 
-	fmt.Println("Foldz has been removed (per uninstall.sh).")
+	fmt.Println("Folderz has been removed (per uninstall.sh).")
 	fmt.Println("This installer does NOT restart the UI.")
 	fmt.Println("In reManager: rebuild the hashtab, then restart XOVI / xochitl.")
 	return nil

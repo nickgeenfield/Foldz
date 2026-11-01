@@ -11,7 +11,7 @@ func TestPayloadContainsExpectedFiles(t *testing.T) {
 		"payload/install.sh":       false,
 		"payload/uninstall.sh":     false,
 		"payload/README.md":        false,
-		"payload/src/foldz.qmd":    false,
+		"payload/src/folderz.qmd":    false,
 	}
 	err := fs.WalkDir(payload, "payload", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -37,7 +37,7 @@ func TestPayloadContainsExpectedFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(data)
-	for _, needle := range []string{"rebuild_hashtable", "foldz.qmd", "NOT restart", "folders.qmd"} {
+	for _, needle := range []string{"rebuild_hashtable", "folderz.qmd", "foldz.qmd", "NOT restart", "folders.qmd"} {
 		if !strings.Contains(s, needle) {
 			t.Errorf("install.sh missing %q", needle)
 		}
